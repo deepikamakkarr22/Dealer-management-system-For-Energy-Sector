@@ -1,16 +1,16 @@
 """
-Vibe Agent for IOCL DMS — powered by Groq + Llama 3.3 70B (free tier).
+Vibe Agent for IOCL DMS — powered by OpenAI GPT-4o.
 
 Agentic tool-use loop:
   1. Receives plain-English business requirement
   2. Calls MongoDB tools (list_collections, get_schema, aggregate, etc.)
-     via Groq's OpenAI-compatible function-calling API
+     via OpenAI function-calling API
   3. Returns structured result: data + MongoDB query + explanation
      + what Oracle APEX would require
 """
 import json
 import os
-from groq import Groq
+from openai import OpenAI
 from app.services.mongo_tools import TOOL_DEFINITIONS_GROQ, TOOL_REGISTRY
 
 _client = None
@@ -19,7 +19,7 @@ _client = None
 def _get_client():
     global _client
     if _client is None:
-        _client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        _client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     return _client
 
 
@@ -98,11 +98,11 @@ def run_vibe_agent(prompt: str) -> dict:
     ]
 
     tool_calls_log = []
-    max_iterations = 8
+    max_iterations = 10
 
     for _ in range(max_iterations):
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="gpt-4o",
             messages=messages,
             tools=TOOL_DEFINITIONS_GROQ,
             tool_choice="auto",
