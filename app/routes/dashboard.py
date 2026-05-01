@@ -16,10 +16,10 @@ def home():
     pending_orders = db.orders.count_documents({"status": "Pending"})
     open_complaints = db.complaints.count_documents({"status": {"$in": ["Open", "In Progress"]}})
 
-    # Monthly sales volume (KL) for current month
-    start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0)
+    # Sales for last 30 days
+    last_30_days = datetime.utcnow() - timedelta(days=30)
     pipeline = [
-        {"$match": {"created_at": {"$gte": start_of_month}}},
+        {"$match": {"created_at": {"$gte": last_30_days}}},
         {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}},
     ]
     sales_agg = list(db.orders.aggregate(pipeline))

@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% block title %}Vibe Coding{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h4 class="section-header mb-0">
+      <i class="bi bi-magic me-2"></i>Vibe Coding — MongoDB AI Agent
+    </h4>
+    <div class="text-muted small mt-1">
+      Describe a business requirement in plain English. Claude queries MongoDB live using MCP tools.
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="badge rounded-pill" style="background:var(--iocl-red);">
+      <i class="bi bi-robot me-1"></i>Claude Sonnet 4.6
+    </span>
+    <span class="badge bg-success rounded-pill">
+      <i class="bi bi-database-fill-check me-1"></i>MongoDB MCP
+    </span>
+  </div>
+</div>
+
+<!-- Architecture banner -->
+<div class="card mb-3 border-0 shadow-sm" style="background:linear-gradient(135deg,#1a1a2e,#003087);">
+  <div class="card-body py-2 px-3">
+    <div class="d-flex align-items-center gap-3 flex-wrap text-white small">
+      <span><i class="bi bi-person-circle me-1"></i>You (plain English)</span>
+      <i class="bi bi-arrow-right text-warning"></i>
+      <span><i class="bi bi-robot me-1"></i>Claude Agent</span>
+      <i class="bi bi-arrow-right text-warning"></i>
+      <span><i class="bi bi-plug me-1"></i>MongoDB MCP Tools</span>
+      <i class="bi bi-arrow-right text-warning"></i>
+      <span><i class="bi bi-database me-1"></i>iocl_dms (live)</span>
+      <i class="bi bi-arrow-right text-warning"></i>
+      <span><i class="bi bi-display me-1"></i>Live Result</span>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+
+  <!-- LEFT: Input Panel -->
+  <div class="col-lg-4">
+
+    <!-- Demo Scenarios -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold small">
+        <i class="bi bi-lightning-charge-fill text-warning me-1"></i>Demo Scenarios — Click to Load
+      </div>
+      <div class="list-group list-group-flush">
+        {% for s in scenarios %}
+        <button class="list-group-item list-group-item-action py-2 px-3 scenario-btn"
+                data-prompt="{{ s.prompt }}" type="button">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi {{ s.icon }} fs-5"></i>
+            <div>
+              <div class="fw-semibold small">{{ s.label }}</div>
+              <div class="text-muted" style="font-size:.7rem;">{{ s.prompt[:65] }}…</div>
+            </div>
+          </div>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Custom Prompt -->
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold small">
+        <i class="bi bi-chat-text me-1 text-danger"></i>Your Requirement
+      </div>
+      <div class="card-body">
+        <textarea id="promptInput" class="form-control mb-2"
+                  rows="5" placeholder="e.g. Show me all dealers in Maharashtra with compliance score below 60%, ranked by outstanding balance…"></textarea>
+        <button id="generateBtn" class="btn w-100 text-white fw-semibold"
+                style="background:var(--iocl-red);">
+          <i class="bi bi-magic me-2"></i>Generate with Claude + MongoDB
+        </button>
+      </div>
+    </div>
+
+    <!-- Tool Call Log -->
+    <div class="card shadow-sm mt-3 d-none" id="toolLogCard">
+      <div class="card-header bg-dark text-white small fw-semibold">
+        <i class="bi bi-terminal me-1"></i>MCP Tool Calls (Live)
+      </div>
+      <div class="card-body p-0">
+        <div id="toolLog" class="font-monospace" style="font-size:.7rem;max-height:200px;overflow-y:auto;background:#1a1a2e;color:#7ec8e3;padding:10px;"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: Output Panel -->
+  <div class="col-lg-8">
+
+    <!-- Thinking state -->
+    <div id="thinkingPanel" class="card shadow-sm d-none mb-3">
+      <div class="card-body text-center py-4">
+        <div class="spinner-border mb-3" style="color:var(--iocl-red);width:3rem;height:3rem;" role="status"></div>
+        <div class="fw-semibold">Claude is querying MongoDB…</div>
+        <div class="text-muted small" id="thinkingStep">Inspecting schema…</div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="card shadow-sm border-dashed">
+      <div class="card-body text-center py-5 text-muted">
+        <i class="bi bi-magic" style="font-size:3rem;opacity:.3;"></i>
+        <div class="mt-3 fw-semibold">Pick a demo scenario or type your requirement</div>
+        <div class="small">Claude will query your live MongoDB database and show results here</div>
+      </div>
+    </div>
+
+    <!-- Result Panel (hidden until generated) -->
+    <div id="resultPanel" class="d-none">
+
+      <!-- Title + Summary -->
+      <div class="card shadow-sm mb-3" style="border-top:4px solid var(--iocl-red);">
+        <div class="card-body">
+          <h5 class="fw-bold mb-1" id="resultTitle"></h5>
+          <p class="text-muted small mb-0" id="resultSummary"></p>
+        </div>
+      </div>
+
+      <!-- Three-column explanation -->
+      <div class="row g-2 mb-3">
+        <div class="col-md-6">
+          <div class="card shadow-sm h-100 border-success">
+            <div class="card-header bg-success-subtle fw-semibold small text-success-emphasis">
+              <i class="bi bi-database-fill-check me-1"></i>MongoDB Advantage
+            </div>
+            <div class="card-body small" id="mongoAdvantage"></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card shadow-sm h-100 border-danger">
+            <div class="card-header bg-danger-subtle fw-semibold small text-danger-emphasis">
+              <i class="bi bi-exclamation-octagon me-1"></i>Oracle APEX Would Need
+            </div>
+            <div class="card-body small" id="oracleEquivalent"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MongoDB Query Used -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-dark text-white fw-semibold small d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-code-slash me-1"></i>MongoDB Query Generated by Claude</span>
+          <span class="badge bg-success">Live — not hardcoded</span>
+        </div>
+        <div class="card-body p-0">
+          <pre id="mongoQuery" class="mb-0 p-3" style="background:#1a1a2e;color:#7ec8e3;font-size:.78rem;border-radius:0 0 8px 8px;overflow-x:auto;max-height:220px;"></pre>
+        </div>
+      </div>
+
+      <!-- Live Data Results -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-white fw-semibold small d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-table me-1 text-danger"></i>Live Results from MongoDB</span>
+          <span class="badge bg-secondary" id="resultCount"></span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive" style="max-height:350px;overflow-y:auto;">
+            <table class="table iocl-table table-hover table-sm mb-0" id="resultTable">
+              <thead id="resultThead"></thead>
+              <tbody id="resultTbody"></tbody>
+            </table>
+          </div>
+          <div id="updateConfirmation" class="d-none p-3 text-center"></div>
+        </div>
+      </div>
+
+    </div><!-- /resultPanel -->
+
+  </div><!-- /col -->
+</div><!-- /row -->
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const generateBtn  = document.getElementById('generateBtn');
+const promptInput  = document.getElementById('promptInput');
+const thinkingPanel= document.getElementById('thinkingPanel');
+const emptyState   = document.getElementById('emptyState');
+const resultPanel  = document.getElementById('resultPanel');
+const toolLogCard  = document.getElementById('toolLogCard');
+const toolLog      = document.getElementById('toolLog');
+const thinkingStep = document.getElementById('thinkingStep');
+
+// Load scenario into textarea
+document.querySelectorAll('.scenario-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    promptInput.value = btn.dataset.prompt;
+    promptInput.focus();
+    document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// Thinking messages rotation
+const thinkingMessages = [
+  'Calling list_collections via MCP…',
+  'Inspecting schema with get_schema…',
+  'Building aggregation pipeline…',
+  'Running query on live MongoDB…',
+  'Processing results…',
+];
+let thinkingIdx = 0;
+let thinkingTimer;
+
+function startThinking() {
+  thinkingIdx = 0;
+  thinkingStep.textContent = thinkingMessages[0];
+  thinkingTimer = setInterval(() => {
+    thinkingIdx = (thinkingIdx + 1) % thinkingMessages.length;
+    thinkingStep.textContent = thinkingMessages[thinkingIdx];
+  }, 1800);
+}
+function stopThinking() { clearInterval(thinkingTimer); }
+
+// Render results
+function renderResult(data) {
+  document.getElementById('resultTitle').textContent   = data.title || 'Result';
+  document.getElementById('resultSummary').textContent = data.summary || '';
+  document.getElementById('mongoAdvantage').textContent   = data.mongodb_advantage || '';
+  document.getElementById('oracleEquivalent').textContent = data.oracle_apex_equivalent || '';
+
+  // MongoDB query
+  const q = data.mongodb_query || {};
+  document.getElementById('mongoQuery').textContent = JSON.stringify(q, null, 2);
+
+  // Tool call log
+  if (data.tool_calls_log && data.tool_calls_log.length) {
+    toolLogCard.classList.remove('d-none');
+    toolLog.innerHTML = data.tool_calls_log.map((t, i) =>
+      `<div class="mb-1"><span class="text-warning">[${i+1}]</span> <b>${t.tool}</b>(${JSON.stringify(t.input)})</div>`
+    ).join('');
+  }
+
+  const results = data.results || [];
+  document.getElementById('resultCount').textContent = results.length + ' records';
+
+  if (data.result_type === 'update_confirmation') {
+    document.getElementById('resultTable').classList.add('d-none');
+    const uc = document.getElementById('updateConfirmation');
+    uc.classList.remove('d-none');
+    uc.innerHTML = `<i class="bi bi-check-circle-fill text-success fs-2 d-block mb-2"></i>
+      <div class="fw-bold text-success">${data.title}</div>
+      <div class="text-muted small">${data.summary}</div>`;
+    return;
+  }
+
+  // Build table
+  document.getElementById('resultTable').classList.remove('d-none');
+  document.getElementById('updateConfirmation').classList.add('d-none');
+
+  const cols = data.columns && data.columns.length
+    ? data.columns
+    : (results.length ? Object.keys(results[0]).filter(k => k !== '_id') : []);
+
+  document.getElementById('resultThead').innerHTML =
+    '<tr>' + cols.map(c => `<th class="text-nowrap">${c}</th>`).join('') + '</tr>';
+
+  document.getElementById('resultTbody').innerHTML = results.slice(0, 30).map(row => {
+    const cells = cols.map(c => {
+      let v = row[c];
+      if (v === null || v === undefined) v = '—';
+      if (typeof v === 'number') v = v.toLocaleString('en-IN', {maximumFractionDigits: 2});
+      if (typeof v === 'object') v = JSON.stringify(v);
+      return `<td class="small">${v}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('') || '<tr><td colspan="99" class="text-muted text-center">No data returned.</td></tr>';
+}
+
+// Main generate handler
+generateBtn.addEventListener('click', async () => {
+  const prompt = promptInput.value.trim();
+  if (!prompt) { promptInput.focus(); return; }
+
+  emptyState.classList.add('d-none');
+  resultPanel.classList.add('d-none');
+  thinkingPanel.classList.remove('d-none');
+  toolLogCard.classList.add('d-none');
+  toolLog.innerHTML = '';
+  generateBtn.disabled = true;
+  startThinking();
+
+  try {
+    const res = await fetch('/vibe/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+    });
+    const data = await res.json();
+    stopThinking();
+    thinkingPanel.classList.add('d-none');
+    if (data.error) {
+      emptyState.innerHTML = `<div class="card-body text-center py-4 text-danger">
+        <i class="bi bi-exclamation-circle fs-2 d-block mb-2"></i>${data.error}</div>`;
+      emptyState.classList.remove('d-none');
+    } else {
+      renderResult(data);
+      resultPanel.classList.remove('d-none');
+    }
+  } catch(e) {
+    stopThinking();
+    thinkingPanel.classList.add('d-none');
+    emptyState.classList.remove('d-none');
+    emptyState.innerHTML = `<div class="card-body text-center py-4 text-danger">
+      <i class="bi bi-exclamation-circle fs-2 d-block mb-2"></i>Network error: ${e.message}</div>`;
+  } finally {
+    generateBtn.disabled = false;
+  }
+});
+
+// Allow Enter+Ctrl to submit
+promptInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generateBtn.click();
+});
+</script>
+{% endblock %}

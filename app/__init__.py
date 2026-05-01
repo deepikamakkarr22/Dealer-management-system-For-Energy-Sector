@@ -27,6 +27,7 @@ def create_app():
     from app.routes.sales import sales_bp
     from app.routes.complaints import complaints_bp
     from app.routes.reports import reports_bp
+    from app.routes.vibe import vibe_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -36,5 +37,6 @@ def create_app():
     app.register_blueprint(sales_bp)
     app.register_blueprint(complaints_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(vibe_bp)
 
     return app

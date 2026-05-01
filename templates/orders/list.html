@@ -68,7 +68,7 @@
           <td><code class="small">{{ o.order_no }}</code></td>
           <td class="small fw-semibold">{{ o.dealer_name }}</td>
           <td class="small text-muted">{{ o.created_at.strftime('%d %b %Y') if o.created_at else '—' }}</td>
-          <td class="small text-muted">{{ o.items | length }} item(s)</td>
+          <td class="small text-muted">{{ o['items'] | length }} item(s)</td>
           <td class="fw-semibold">₹{{ "{:,.0f}".format(o.total_amount) }}</td>
           <td class="small">{{ o.payment_mode }}</td>
           <td>

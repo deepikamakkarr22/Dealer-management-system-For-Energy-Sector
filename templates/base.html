@@ -31,6 +31,12 @@
       <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('sales.sales_overview') }}"><i class="bi bi-graph-up-arrow me-1"></i>Sales</a></li>
       <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('complaints.list_complaints') }}"><i class="bi bi-chat-dots me-1"></i>Complaints</a></li>
       <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('reports.reports_home') }}"><i class="bi bi-file-earmark-bar-graph me-1"></i>Reports</a></li>
+      <li class="nav-item">
+        <a class="nav-link fw-semibold" href="{{ url_for('vibe.panel') }}"
+           style="color:#ffd700 !important;">
+          <i class="bi bi-magic me-1"></i>Vibe Coding
+        </a>
+      </li>
       <li class="nav-item ms-2">
         <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
       </li>
