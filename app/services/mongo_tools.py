@@ -103,12 +103,24 @@ def aggregate(collection: str, pipeline: list) -> dict:
         return {"error": f"Collection '{collection}' does not exist."}
 
     try:
-        results = _serialise(list(mongo.db[collection].aggregate(pipeline)))
+        raw = _serialise(list(mongo.db[collection].aggregate(pipeline)))
+        # Rename MongoDB's _id grouping key so frontend renders it clearly.
+        # Compound _id dicts are flattened; simple values become 'group_by'.
+        cleaned = []
+        for doc in raw:
+            if "_id" in doc:
+                val = doc.pop("_id")
+                if isinstance(val, dict):
+                    cleaned.append({**val, **doc})
+                else:
+                    cleaned.append({"group_by": val, **doc})
+            else:
+                cleaned.append(doc)
         return {
             "collection": collection,
             "pipeline": pipeline,
-            "count": len(results),
-            "results": results,
+            "count": len(cleaned),
+            "results": cleaned,
         }
     except Exception as e:
         return {"error": str(e), "pipeline": pipeline}

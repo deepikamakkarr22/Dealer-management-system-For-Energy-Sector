@@ -258,19 +258,24 @@ function renderResult(data) {
   document.getElementById('resultTable').classList.remove('d-none');
   document.getElementById('updateConfirmation').classList.add('d-none');
 
+  // Use agent-provided columns if available, else derive from first result
+  // Never filter _id — Python layer already renames it to group_by
   const cols = data.columns && data.columns.length
     ? data.columns
-    : (results.length ? Object.keys(results[0]).filter(k => k !== '_id') : []);
+    : (results.length ? Object.keys(results[0]) : []);
+
+  // Format column header — convert snake_case to Title Case
+  const colLabel = c => c.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   document.getElementById('resultThead').innerHTML =
-    '<tr>' + cols.map(c => `<th class="text-nowrap">${c}</th>`).join('') + '</tr>';
+    '<tr>' + cols.map(c => `<th class="text-nowrap">${colLabel(c)}</th>`).join('') + '</tr>';
 
   document.getElementById('resultTbody').innerHTML = results.slice(0, 30).map(row => {
     const cells = cols.map(c => {
       let v = row[c];
       if (v === null || v === undefined) v = '—';
-      if (typeof v === 'number') v = v.toLocaleString('en-IN', {maximumFractionDigits: 2});
-      if (typeof v === 'object') v = JSON.stringify(v);
+      else if (typeof v === 'number') v = v.toLocaleString('en-IN', {maximumFractionDigits: 2});
+      else if (typeof v === 'object') v = JSON.stringify(v);
       return `<td class="small">${v}</td>`;
     }).join('');
     return `<tr>${cells}</tr>`;
