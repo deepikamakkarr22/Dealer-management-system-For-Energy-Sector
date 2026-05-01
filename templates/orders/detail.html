@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ order.order_no }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('orders.list_orders') }}" class="text-decoration-none text-muted small">
+    <i class="bi bi-arrow-left"></i> Back to Orders
+  </a>
+</div>
+
+<div class="card shadow-sm mb-3" style="border-top:4px solid var(--iocl-red);">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <h5 class="fw-bold mb-1">{{ order.order_no }}</h5>
+        <div class="text-muted small">Placed: {{ order.created_at.strftime('%d %b %Y, %I:%M %p') if order.created_at else '—' }}</div>
+      </div>
+      <div class="col-md-6 text-md-end mt-2 mt-md-0">
+        <span class="badge fs-6 rounded-pill
+          {% if order.status == 'Delivered' %}bg-success
+          {% elif order.status == 'Pending' %}bg-warning text-dark
+          {% elif order.status == 'Dispatched' %}bg-info text-dark
+          {% elif order.status == 'Cancelled' %}bg-danger
+          {% else %}bg-primary{% endif %}">
+          {{ order.status }}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-person text-danger me-2"></i>Dealer Info</div>
+      <div class="card-body small">
+        <div class="fw-bold fs-6">{{ order.dealer_name }}</div>
+        <code class="text-muted">{{ order.dealer_code }}</code>
+        {% if dealer %}
+        <hr class="my-2"/>
+        <div class="text-muted">{{ dealer.contact.city }}, {{ dealer.contact.state }}</div>
+        <div>{{ dealer.contact.phone }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-credit-card text-danger me-2"></i>Payment</div>
+      <div class="card-body small">
+        <table class="table table-sm table-borderless mb-0">
+          <tr><td class="text-muted">Mode</td><td class="fw-semibold">{{ order.payment_mode }}</td></tr>
+          <tr><td class="text-muted">Status</td>
+            <td><span class="badge {% if order.payment_status=='Paid' %}bg-success{% elif order.payment_status=='Unpaid' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ order.payment_status }}</span></td>
+          </tr>
+          <tr><td class="text-muted">Total</td><td class="fw-bold text-primary fs-6">₹{{ "{:,.0f}".format(order.total_amount) }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-truck text-danger me-2"></i>Dispatch Info</div>
+      <div class="card-body small">
+        <table class="table table-sm table-borderless mb-0">
+          <tr><td class="text-muted">Vehicle No.</td><td class="fw-semibold">{{ order.vehicle_no or '—' }}</td></tr>
+          <tr><td class="text-muted">Dispatch Date</td><td>{{ order.dispatch_date.strftime('%d %b %Y') if order.dispatch_date else '—' }}</td></tr>
+          <tr><td class="text-muted">Delivery Date</td><td>{{ order.delivery_date.strftime('%d %b %Y') if order.delivery_date else '—' }}</td></tr>
+          <tr><td class="text-muted">Remarks</td><td>{{ order.remarks or '—' }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h5 class="section-header mt-4">Order Items</h5>
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table iocl-table mb-0">
+      <thead><tr><th>#</th><th>Product</th><th>Quantity</th><th>Unit</th><th>Rate / Unit</th><th>Amount</th></tr></thead>
+      <tbody>
+        {% for item in order.items %}
+        <tr>
+          <td class="text-muted small">{{ loop.index }}</td>
+          <td>
+            <span class="badge bg-primary-subtle text-primary-emphasis me-1">{{ item.product_code }}</span>
+            {{ item.product_name }}
+          </td>
+          <td class="fw-semibold">{{ "{:,.2f}".format(item.quantity) }}</td>
+          <td class="text-muted small">{{ item.unit }}</td>
+          <td>₹{{ "{:,.2f}".format(item.rate_per_unit) }}</td>
+          <td class="fw-bold">₹{{ "{:,.0f}".format(item.amount) }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="table-light fw-bold">
+          <td colspan="5" class="text-end">Total</td>
+          <td class="text-primary fs-5">₹{{ "{:,.0f}".format(order.total_amount) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

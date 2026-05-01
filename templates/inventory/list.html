@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Inventory{% endblock %}
+
+{% block content %}
+<h4 class="section-header mb-3"><i class="bi bi-boxes me-2"></i>Fuel & Product Inventory</h4>
+
+<!-- Product Summary Cards -->
+<div class="row g-2 mb-4">
+  {% for s in summary %}
+  {% set fill = ((s.total_stock / s.total_capacity) * 100) | int if s.total_capacity > 0 else 0 %}
+  <div class="col-6 col-md-2">
+    <div class="card shadow-sm text-center py-2 px-1 {% if s.low_stock_count > 0 %}border-danger{% endif %}">
+      <div class="fw-bold small text-muted">{{ s._id }}</div>
+      <div class="fs-4 fw-bold {% if fill < 25 %}text-danger{% elif fill < 50 %}text-warning{% else %}text-success{% endif %}">
+        {{ "{:,.0f}".format(s.total_stock) }}
+      </div>
+      <div class="text-muted" style="font-size:.7rem;">{{ s.unit }}</div>
+      <div class="progress mt-1 mx-2" style="height:6px;">
+        <div class="progress-bar {% if fill < 25 %}bg-danger{% elif fill < 50 %}bg-warning{% else %}bg-success{% endif %}"
+             style="width:{{ fill }}%"></div>
+      </div>
+      <div class="mt-1" style="font-size:.65rem;">
+        {{ fill }}% of {{ "{:,.0f}".format(s.total_capacity) }} cap.
+      </div>
+      {% if s.low_stock_count > 0 %}
+      <span class="badge bg-danger mt-1" style="font-size:.6rem;">{{ s.low_stock_count }} low</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <select name="product" class="form-select form-select-sm">
+          <option value="">All Products</option>
+          {% for p in ['MS','HSD','SKO','LPG14','LPG19','XP95'] %}
+          <option value="{{ p }}" {% if p == product_filter %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <div class="form-check ms-2">
+          <input class="form-check-input" type="checkbox" name="alert" value="1" id="alertOnly"
+                 {% if alert_only %}checked{% endif %}>
+          <label class="form-check-label small" for="alertOnly">Show Low Stock Only</label>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-sm text-white" style="background:var(--iocl-red);">
+          <i class="bi bi-funnel"></i> Filter
+        </button>
+        <a href="{{ url_for('inventory.list_inventory') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Inventory Table -->
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table iocl-table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Dealer Code</th>
+          <th>Product</th>
+          <th>Current Stock</th>
+          <th>Tank Capacity</th>
+          <th>Fill Level</th>
+          <th>Reorder Level</th>
+          <th>Last Receipt</th>
+          <th>Last Qty</th>
+          <th>Alert</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        {% set fill = ((item.current_stock / item.tank_capacity) * 100) | int if item.tank_capacity > 0 else 0 %}
+        {% set is_low = item.current_stock <= item.reorder_level %}
+        <tr class="{% if is_low %}table-danger{% endif %}">
+          <td><code class="small">{{ item.dealer_code }}</code></td>
+          <td>
+            <span class="badge bg-primary-subtle text-primary-emphasis">{{ item.product_code }}</span>
+            <div class="small text-muted">{{ item.product_name }}</div>
+          </td>
+          <td class="fw-semibold {% if is_low %}text-danger{% endif %}">
+            {{ "{:,.1f}".format(item.current_stock) }} {{ item.unit }}
+          </td>
+          <td class="small text-muted">{{ "{:,.0f}".format(item.tank_capacity) }}</td>
+          <td style="min-width:120px;">
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height:8px;">
+                <div class="progress-bar {% if fill < 25 %}bg-danger{% elif fill < 50 %}bg-warning{% else %}bg-success{% endif %}"
+                     style="width:{{ fill }}%"></div>
+              </div>
+              <small>{{ fill }}%</small>
+            </div>
+          </td>
+          <td class="small text-muted">{{ item.reorder_level }} {{ item.unit }}</td>
+          <td class="small text-muted">{{ item.last_receipt_date.strftime('%d %b %Y') if item.last_receipt_date else '—' }}</td>
+          <td class="small">{{ "{:,.1f}".format(item.last_receipt_qty) if item.last_receipt_qty else '—' }}</td>
+          <td>
+            {% if is_low %}
+            <span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Low</span>
+            {% else %}
+            <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle"></i> OK</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-center text-muted py-4">No inventory records found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

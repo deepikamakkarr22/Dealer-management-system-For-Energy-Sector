@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Complaints{% endblock %}
+
+{% block content %}
+<h4 class="section-header mb-3"><i class="bi bi-chat-dots me-2"></i>Complaint Management</h4>
+
+<!-- Summary Pills -->
+<div class="row g-2 mb-3">
+  {% for sc in status_counts %}
+  <div class="col-auto">
+    <div class="card px-3 py-2 shadow-sm border-0 text-center" style="min-width:100px;">
+      <div class="fw-bold fs-4
+        {% if sc._id == 'Open' %}text-danger
+        {% elif sc._id == 'Resolved' %}text-success
+        {% else %}text-warning{% endif %}">{{ sc.count }}</div>
+      <div class="small text-muted">{{ sc._id }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">All Statuses</option>
+          {% for s in ['Open','In Progress','Resolved','Closed'] %}
+          <option value="{{ s }}" {% if s == status_filter %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="category" class="form-select form-select-sm">
+          <option value="">All Categories</option>
+          {% for c in category_counts %}
+          <option value="{{ c._id }}" {% if c._id == category_filter %}selected{% endif %}>
+            {{ c._id }} ({{ c.count }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-sm text-white" style="background:var(--iocl-red);">
+          <i class="bi bi-funnel"></i> Filter
+        </button>
+        <a href="{{ url_for('complaints.list_complaints') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Complaints Table -->
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table iocl-table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Ref No.</th>
+          <th>Dealer</th>
+          <th>Category</th>
+          <th>Subject</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Raised On</th>
+          <th>Resolved On</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in complaints %}
+        <tr>
+          <td><code class="small">{{ c.ref_no }}</code></td>
+          <td class="small fw-semibold">{{ c.dealer_name }}<br><span class="text-muted fw-normal">{{ c.dealer_code }}</span></td>
+          <td><span class="badge bg-secondary-subtle text-secondary-emphasis small">{{ c.category }}</span></td>
+          <td class="small">{{ c.subject }}</td>
+          <td>
+            <span class="badge
+              {% if c.priority == 'High' %}bg-danger
+              {% elif c.priority == 'Medium' %}bg-warning text-dark
+              {% else %}bg-secondary{% endif %} small">
+              {{ c.priority }}
+            </span>
+          </td>
+          <td>
+            <span class="badge
+              {% if c.status == 'Open' %}bg-danger
+              {% elif c.status == 'In Progress' %}bg-warning text-dark
+              {% elif c.status == 'Resolved' %}bg-success
+              {% else %}bg-secondary{% endif %}">
+              {{ c.status }}
+            </span>
+          </td>
+          <td class="small text-muted">{{ c.created_at.strftime('%d %b %Y') if c.created_at else '—' }}</td>
+          <td class="small text-muted">{{ c.resolved_at.strftime('%d %b %Y') if c.resolved_at else '—' }}</td>
+          <td>
+            <a href="{{ url_for('complaints.complaint_detail', complaint_id=c._id) }}"
+               class="btn btn-sm btn-outline-secondary py-0 px-2">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-center text-muted py-4">No complaints found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="section-header mb-0">Operations Dashboard</h4>
+  <span class="badge rounded-pill text-bg-secondary"><i class="bi bi-calendar3 me-1"></i>{{ now().strftime('%d %b %Y') if now else 'Live' }}</span>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card kpi-card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="kpi-icon" style="background:#fde8ec;"><i class="bi bi-people-fill text-danger fs-4"></i></div>
+        <div>
+          <div class="fs-2 fw-bold">{{ total_dealers }}</div>
+          <div class="text-muted small">Total Dealers</div>
+          <div class="text-success small"><i class="bi bi-check-circle"></i> {{ active_dealers }} Active</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card kpi-card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="kpi-icon" style="background:#e8f4fd;"><i class="bi bi-cart3 text-primary fs-4"></i></div>
+        <div>
+          <div class="fs-2 fw-bold">{{ pending_orders }}</div>
+          <div class="text-muted small">Pending Orders</div>
+          <div class="text-warning small"><i class="bi bi-clock"></i> Awaiting approval</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card kpi-card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="kpi-icon" style="background:#fff3cd;"><i class="bi bi-currency-rupee text-warning fs-4"></i></div>
+        <div>
+          <div class="fs-2 fw-bold">₹{{ "{:,.0f}".format(monthly_sales/100000) }}L</div>
+          <div class="text-muted small">Monthly Sales</div>
+          <div class="text-muted small"><i class="bi bi-calendar-month"></i> Current month</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card kpi-card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="kpi-icon" style="background:#f8d7da;"><i class="bi bi-chat-dots-fill text-danger fs-4"></i></div>
+        <div>
+          <div class="fs-2 fw-bold">{{ open_complaints }}</div>
+          <div class="text-muted small">Open Complaints</div>
+          <div class="text-danger small"><i class="bi bi-exclamation-circle"></i> Needs attention</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+  <!-- Sales Trend -->
+  <div class="col-md-8">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-graph-up-arrow text-danger me-2"></i>6-Month Sales Trend (₹ Lakhs)</div>
+      <div class="card-body"><div class="chart-container"><canvas id="trendChart"></canvas></div></div>
+    </div>
+  </div>
+  <!-- Dealer by Product -->
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-pie-chart text-danger me-2"></i>Dealers by Product</div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <div class="chart-container w-100"><canvas id="productChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- State Distribution + Alerts + Recent Orders -->
+<div class="row g-3">
+  <!-- State bar -->
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-map text-danger me-2"></i>Top States by Dealer Count</div>
+      <div class="card-body"><div class="chart-container"><canvas id="stateChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- Low Stock Alerts -->
+  <div class="col-md-3">
+    <div class="card shadow-sm border-warning">
+      <div class="card-header bg-warning-subtle fw-semibold text-warning-emphasis">
+        <i class="bi bi-exclamation-triangle me-1"></i>Low Stock Alerts
+      </div>
+      <div class="card-body p-0">
+        {% if low_stock %}
+        <ul class="list-group list-group-flush">
+          {% for item in low_stock %}
+          <li class="list-group-item py-2 small">
+            <div class="fw-semibold">{{ item.dealer_code }}</div>
+            <div class="text-muted">{{ item.product_name }}</div>
+            <div class="text-danger">{{ item.current_stock }} {{ item.unit }} (min {{ item.reorder_level }})</div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="p-3 text-muted small text-center">All stocks healthy</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Orders -->
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+        <span><i class="bi bi-clock-history text-danger me-2"></i>Recent Orders</span>
+        <a href="{{ url_for('orders.list_orders') }}" class="small text-decoration-none">View all</a>
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for o in recent_orders %}
+          <li class="list-group-item py-2 small">
+            <div class="d-flex justify-content-between">
+              <span class="fw-semibold">{{ o.order_no }}</span>
+              <span class="badge
+                {% if o.status == 'Delivered' %}bg-success
+                {% elif o.status == 'Pending' %}bg-warning text-dark
+                {% elif o.status == 'Dispatched' %}bg-info text-dark
+                {% elif o.status == 'Cancelled' %}bg-danger
+                {% else %}bg-secondary{% endif %}">{{ o.status }}</span>
+            </div>
+            <div class="text-muted">{{ o.dealer_name }} &mdash; ₹{{ "{:,.0f}".format(o.total_amount) }}</div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Sales Trend
+const trendLabels = {{ trend | map(attribute='label') | list | tojson }};
+const trendData   = {{ trend | map(attribute='amount') | list | tojson }};
+new Chart(document.getElementById('trendChart'), {
+  type: 'bar',
+  data: {
+    labels: trendLabels,
+    datasets: [{
+      label: '₹ Amount',
+      data: trendData.map(v => +(v/100000).toFixed(2)),
+      backgroundColor: 'rgba(200,16,46,0.75)',
+      borderColor: '#c8102e',
+      borderWidth: 1,
+      borderRadius: 6,
+    }]
+  },
+  options: { responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { callback: v => '₹' + v + 'L' } } }
+  }
+});
+
+// Product Pie
+const prodLabels = {{ product_data | map(attribute='_id') | list | tojson }};
+const prodCounts = {{ product_data | map(attribute='count') | list | tojson }};
+new Chart(document.getElementById('productChart'), {
+  type: 'doughnut',
+  data: {
+    labels: prodLabels,
+    datasets: [{ data: prodCounts,
+      backgroundColor: ['#c8102e','#003087','#f5a623','#28a745','#6c757d','#17a2b8'],
+      borderWidth: 2
+    }]
+  },
+  options: { responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }
+  }
+});
+
+// State Bar
+const stateLabels = {{ state_data | map(attribute='_id') | list | tojson }};
+const stateCounts = {{ state_data | map(attribute='count') | list | tojson }};
+new Chart(document.getElementById('stateChart'), {
+  type: 'bar',
+  data: {
+    labels: stateLabels,
+    datasets: [{ label: 'Dealers', data: stateCounts,
+      backgroundColor: '#003087', borderRadius: 4 }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero: true } }
+  }
+});
+</script>
+{% endblock %}

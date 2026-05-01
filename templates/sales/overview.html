@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Sales Analytics{% endblock %}
+
+{% block content %}
+<h4 class="section-header mb-4"><i class="bi bi-graph-up-arrow me-2"></i>Sales Analytics</h4>
+
+<div class="row g-3 mb-4">
+  <!-- Top Dealers -->
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-trophy text-warning me-2"></i>Top 10 Dealers by Revenue</div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light"><tr><th>#</th><th>Dealer</th><th>Orders</th><th>Revenue</th></tr></thead>
+          <tbody>
+            {% for d in top_dealers %}
+            <tr>
+              <td class="text-muted small">{{ loop.index }}</td>
+              <td>
+                <div class="fw-semibold small">{{ d.dealer_name }}</div>
+                <code class="text-muted" style="font-size:.7rem;">{{ d._id }}</code>
+              </td>
+              <td class="small">{{ d.order_count }}</td>
+              <td class="fw-bold small">₹{{ "{:,.0f}".format(d.total_sales / 100000) }}L</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Sales Chart -->
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-bar-chart-fill text-danger me-2"></i>Product-wise Revenue</div>
+      <div class="card-body"><div class="chart-container"><canvas id="productRevenueChart"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- State Revenue -->
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-geo-alt text-danger me-2"></i>Top States by Revenue</div>
+      <div class="card-body"><div class="chart-container"><canvas id="stateRevenueChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- Product Volume Table -->
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-table text-danger me-2"></i>Product Sales Summary</div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light"><tr><th>Product</th><th>Volume</th><th>Revenue</th></tr></thead>
+          <tbody>
+            {% for p in product_sales %}
+            <tr>
+              <td>
+                <span class="badge bg-primary-subtle text-primary-emphasis me-1">{{ p._id }}</span>
+                <small>{{ p.product_name }}</small>
+              </td>
+              <td class="small">{{ "{:,.1f}".format(p.total_qty) }}</td>
+              <td class="fw-semibold small">₹{{ "{:,.0f}".format(p.total_revenue / 100000) }}L</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const prodLabels  = {{ product_sales | map(attribute='_id') | list | tojson }};
+const prodRevenue = {{ product_sales | map(attribute='total_revenue') | list | tojson }};
+new Chart(document.getElementById('productRevenueChart'), {
+  type: 'bar',
+  data: {
+    labels: prodLabels,
+    datasets: [{ label: 'Revenue (₹)', data: prodRevenue.map(v => +(v/100000).toFixed(2)),
+      backgroundColor: ['#c8102e','#003087','#f5a623','#28a745','#6c757d','#17a2b8'],
+      borderRadius: 6 }]
+  },
+  options: { responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { callback: v => '₹' + v + 'L' } } }
+  }
+});
+
+const stateLabels  = {{ state_revenue | map(attribute='_id') | list | tojson }};
+const stateRevenue = {{ state_revenue | map(attribute='total_revenue') | list | tojson }};
+new Chart(document.getElementById('stateRevenueChart'), {
+  type: 'bar',
+  data: {
+    labels: stateLabels,
+    datasets: [{ label: 'Revenue', data: stateRevenue.map(v => +(v/100000).toFixed(2)),
+      backgroundColor: '#003087', borderRadius: 4 }]
+  },
+  options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero: true, ticks: { callback: v => '₹' + v + 'L' } } }
+  }
+});
+</script>
+{% endblock %}

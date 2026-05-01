@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}{{ dealer.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('dealers.list_dealers') }}" class="text-decoration-none text-muted small">
+    <i class="bi bi-arrow-left"></i> Back to Dealers
+  </a>
+</div>
+
+<!-- Dealer Header -->
+<div class="card shadow-sm mb-3" style="border-top: 4px solid var(--iocl-red);">
+  <div class="card-body">
+    <div class="row align-items-center">
+      <div class="col-md-8">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-4"
+               style="width:60px;height:60px;background:var(--iocl-red);">
+            {{ dealer.name[0] }}
+          </div>
+          <div>
+            <h4 class="mb-0 fw-bold">{{ dealer.name }}</h4>
+            <code class="text-muted">{{ dealer.dealer_code }}</code>
+            &nbsp;
+            <span class="badge rounded-pill
+              {% if dealer.status == 'Active' %}badge-active{% elif dealer.status == 'Inactive' %}badge-inactive{% else %}badge-suspended{% endif %}">
+              {{ dealer.status }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <div class="small text-muted">Product Type</div>
+        <span class="badge bg-primary fs-6">{{ dealer.product_type }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Contact & License -->
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold bg-white"><i class="bi bi-person-vcard text-danger me-2"></i>Contact Details</div>
+      <div class="card-body small">
+        <table class="table table-sm table-borderless mb-0">
+          <tr><td class="text-muted">Owner</td><td class="fw-semibold">{{ dealer.owner_name }}</td></tr>
+          <tr><td class="text-muted">Phone</td><td>{{ dealer.contact.phone }}</td></tr>
+          <tr><td class="text-muted">Email</td><td>{{ dealer.contact.email }}</td></tr>
+          <tr><td class="text-muted">Address</td><td>{{ dealer.contact.address }}</td></tr>
+          <tr><td class="text-muted">City</td><td>{{ dealer.contact.city }}</td></tr>
+          <tr><td class="text-muted">State</td><td>{{ dealer.contact.state }}</td></tr>
+          <tr><td class="text-muted">Pincode</td><td>{{ dealer.contact.pincode }}</td></tr>
+          <tr><td class="text-muted">Territory</td><td>{{ dealer.territory }}</td></tr>
+          <tr><td class="text-muted">Reg. Office</td><td>{{ dealer.assigned_ro }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Financial -->
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold bg-white"><i class="bi bi-bank text-danger me-2"></i>Financial Info</div>
+      <div class="card-body small">
+        <table class="table table-sm table-borderless mb-0">
+          <tr><td class="text-muted">License No.</td><td class="fw-semibold">{{ dealer.license_no }}</td></tr>
+          <tr><td class="text-muted">License Expiry</td>
+            <td class="{% if dealer.license_expiry and dealer.license_expiry.strftime('%Y-%m-%d') < '2025-01-01' %}text-danger fw-semibold{% endif %}">
+              {{ dealer.license_expiry.strftime('%d %b %Y') if dealer.license_expiry else 'N/A' }}
+            </td>
+          </tr>
+          <tr><td class="text-muted">Onboarded</td><td>{{ dealer.onboarded_on.strftime('%d %b %Y') if dealer.onboarded_on else 'N/A' }}</td></tr>
+          <tr><td class="text-muted">Credit Limit</td><td class="fw-bold text-primary">₹{{ "{:,.0f}".format(dealer.credit_limit) }}</td></tr>
+          <tr><td class="text-muted">Outstanding</td>
+            <td class="fw-bold {% if dealer.outstanding_balance > dealer.credit_limit * 0.8 %}text-danger{% else %}text-success{% endif %}">
+              ₹{{ "{:,.0f}".format(dealer.outstanding_balance) }}
+            </td>
+          </tr>
+        </table>
+        <!-- Credit utilisation bar -->
+        {% set util = ((dealer.outstanding_balance / dealer.credit_limit) * 100) | int if dealer.credit_limit > 0 else 0 %}
+        <div class="mt-2">
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Credit Utilisation</span><span>{{ util }}%</span>
+          </div>
+          <div class="progress" style="height:8px;">
+            <div class="progress-bar {% if util > 80 %}bg-danger{% elif util > 60 %}bg-warning{% else %}bg-success{% endif %}"
+                 style="width:{{ util }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold bg-white"><i class="bi bi-bar-chart text-danger me-2"></i>Performance KPIs</div>
+      <div class="card-body">
+        <div class="text-center mb-3">
+          <div class="fs-1 fw-bold" style="color:var(--iocl-red);">
+            {{ dealer.kpis.customer_rating | round(1) if dealer.kpis else 'N/A' }}
+          </div>
+          <div class="text-muted small">Customer Rating / 5</div>
+          <div class="text-warning fs-5">
+            {% if dealer.kpis %}
+              {% for i in range(dealer.kpis.customer_rating | int) %}★{% endfor %}
+              {% for i in range(5 - (dealer.kpis.customer_rating | int)) %}☆{% endfor %}
+            {% endif %}
+          </div>
+        </div>
+        <hr />
+        <div class="row text-center g-2 small">
+          <div class="col-6">
+            <div class="fw-bold fs-5">{{ dealer.kpis.monthly_volume_kl | round(1) if dealer.kpis else 0 }}</div>
+            <div class="text-muted">Monthly Vol (KL)</div>
+          </div>
+          <div class="col-6">
+            <div class="fw-bold fs-5">{{ dealer.kpis.compliance_score | round(1) if dealer.kpis else 0 }}%</div>
+            <div class="text-muted">Compliance Score</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Inventory -->
+<h5 class="section-header mt-4">Inventory Snapshot</h5>
+<div class="row g-2 mb-3">
+  {% for item in inventory %}
+  {% set fill = ((item.current_stock / item.tank_capacity) * 100) | int if item.tank_capacity > 0 else 0 %}
+  <div class="col-md-4 col-lg-2">
+    <div class="card text-center p-2 shadow-sm {% if item.current_stock <= item.reorder_level %}border-danger{% endif %}">
+      <div class="small fw-bold">{{ item.product_code }}</div>
+      <div class="fs-5 fw-bold {% if item.current_stock <= item.reorder_level %}text-danger{% endif %}">
+        {{ item.current_stock | round(1) }}
+      </div>
+      <div class="text-muted" style="font-size:.7rem;">{{ item.unit }}</div>
+      <div class="progress mt-1" style="height:5px;">
+        <div class="progress-bar {% if fill < 20 %}bg-danger{% elif fill < 50 %}bg-warning{% else %}bg-success{% endif %}"
+             style="width:{{ fill }}%"></div>
+      </div>
+      <div class="text-muted mt-1" style="font-size:.65rem;">{{ fill }}% full</div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col text-muted small">No inventory records.</div>
+  {% endfor %}
+</div>
+
+<!-- Recent Orders -->
+<h5 class="section-header">Recent Orders</h5>
+<div class="table-responsive">
+  <table class="table iocl-table table-sm">
+    <thead><tr><th>Order No.</th><th>Date</th><th>Amount</th><th>Status</th><th>Payment</th></tr></thead>
+    <tbody>
+      {% for o in orders %}
+      <tr>
+        <td><a href="{{ url_for('orders.order_detail', order_id=o._id) }}" class="text-decoration-none">{{ o.order_no }}</a></td>
+        <td class="small text-muted">{{ o.created_at.strftime('%d %b %Y') if o.created_at else '' }}</td>
+        <td>₹{{ "{:,.0f}".format(o.total_amount) }}</td>
+        <td><span class="badge badge-{{ o.status | lower }}">{{ o.status }}</span></td>
+        <td><span class="badge {% if o.payment_status == 'Paid' %}bg-success{% elif o.payment_status == 'Unpaid' %}bg-danger{% else %}bg-warning text-dark{% endif %} small">{{ o.payment_status }}</span></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-muted text-center">No orders yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Complaints -->
+<h5 class="section-header">Recent Complaints</h5>
+<div class="table-responsive">
+  <table class="table iocl-table table-sm">
+    <thead><tr><th>Ref No.</th><th>Category</th><th>Subject</th><th>Status</th><th>Raised On</th></tr></thead>
+    <tbody>
+      {% for c in complaints %}
+      <tr>
+        <td><code class="small">{{ c.ref_no }}</code></td>
+        <td><span class="badge bg-secondary-subtle text-secondary-emphasis small">{{ c.category }}</span></td>
+        <td class="small">{{ c.subject }}</td>
+        <td><span class="badge {% if c.status == 'Open' %}bg-danger{% elif c.status == 'Resolved' %}bg-success{% else %}bg-warning text-dark{% endif %}">{{ c.status }}</span></td>
+        <td class="small text-muted">{{ c.created_at.strftime('%d %b %Y') if c.created_at else '' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-muted text-center">No complaints.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

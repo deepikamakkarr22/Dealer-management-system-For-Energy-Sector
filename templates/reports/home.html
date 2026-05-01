@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<h4 class="section-header mb-4"><i class="bi bi-file-earmark-bar-graph me-2"></i>Reports & Analytics</h4>
+
+<!-- KPI Row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card kpi-card text-center py-3 shadow-sm">
+      <div class="fs-2 fw-bold text-danger">₹{{ "{:,.0f}".format(revenue / 10000000) }}Cr</div>
+      <div class="text-muted small">Total Revenue (All Time)</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card kpi-card text-center py-3 shadow-sm">
+      <div class="fs-2 fw-bold text-primary">₹{{ "{:,.0f}".format(avg_order / 1000) }}K</div>
+      <div class="text-muted small">Avg. Order Value</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card kpi-card text-center py-3 shadow-sm">
+      <div class="fs-2 fw-bold text-success">
+        {{ compliance[0].avg_compliance | round(1) if compliance else '—' }}%
+      </div>
+      <div class="text-muted small">Top State Compliance</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card kpi-card text-center py-3 shadow-sm">
+      <div class="fs-2 fw-bold" style="color:var(--iocl-gold);">
+        {{ compliance[0].avg_rating | round(2) if compliance else '—' }}
+      </div>
+      <div class="text-muted small">Top State Avg Rating</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- 12-month Revenue Chart -->
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-graph-up text-danger me-2"></i>12-Month Revenue Trend (₹ Crore)
+      </div>
+      <div class="card-body"><div class="chart-container"><canvas id="monthlyChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- State Compliance -->
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-shield-check text-danger me-2"></i>State-wise Compliance
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light"><tr><th>State</th><th>Compliance</th><th>Rating</th></tr></thead>
+          <tbody>
+            {% for c in compliance %}
+            <tr>
+              <td class="small fw-semibold">{{ c._id }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-1">
+                  <div class="progress flex-grow-1" style="height:6px;">
+                    <div class="progress-bar
+                      {% if c.avg_compliance >= 80 %}bg-success{% elif c.avg_compliance >= 60 %}bg-warning{% else %}bg-danger{% endif %}"
+                         style="width:{{ c.avg_compliance }}%"></div>
+                  </div>
+                  <small>{{ c.avg_compliance | round(0) | int }}%</small>
+                </div>
+              </td>
+              <td class="small text-warning fw-bold">{{ c.avg_rating | round(1) }}★</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const monthlyLabels = {{ monthly | map(attribute='label') | list | tojson }};
+const monthlyValues = {{ monthly | map(attribute='value') | list | tojson }};
+new Chart(document.getElementById('monthlyChart'), {
+  type: 'line',
+  data: {
+    labels: monthlyLabels,
+    datasets: [{
+      label: '₹ Crore',
+      data: monthlyValues,
+      borderColor: '#c8102e',
+      backgroundColor: 'rgba(200,16,46,0.08)',
+      borderWidth: 2,
+      pointBackgroundColor: '#c8102e',
+      fill: true,
+      tension: 0.4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { callback: v => '₹' + v + 'Cr' } }
+    }
+  }
+});
+</script>
+{% endblock %}

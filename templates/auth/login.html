@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login | IOCL Dealer Management System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/iocl.css') }}" />
+</head>
+<body>
+<div class="login-bg">
+  <div class="login-card card p-4">
+    <!-- Header -->
+    <div class="text-center mb-4">
+      <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+           style="width:72px;height:72px;background:var(--iocl-red);">
+        <span class="text-white fw-black" style="font-size:1.5rem;">IO</span>
+      </div>
+      <h4 class="fw-bold mb-0" style="color:var(--iocl-red);">IndianOil DMS</h4>
+      <p class="text-muted small">Dealer Management System</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} py-2 small">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Username</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input type="text" name="username" class="form-control" placeholder="Enter username" required />
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Password</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-lock"></i></span>
+          <input type="password" name="password" class="form-control" placeholder="Enter password" required />
+        </div>
+      </div>
+      <button type="submit" class="btn w-100 text-white fw-semibold py-2"
+              style="background:var(--iocl-red);">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+      </button>
+    </form>
+
+    <hr class="my-3" />
+    <div class="text-center small text-muted">
+      <strong>Demo Credentials</strong><br/>
+      Username: <code>admin</code> &nbsp;|&nbsp; Password: <code>admin123</code>
+    </div>
+    <div class="text-center mt-3">
+      <small class="text-muted">&copy; 2024 Indian Oil Corporation Ltd.</small>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

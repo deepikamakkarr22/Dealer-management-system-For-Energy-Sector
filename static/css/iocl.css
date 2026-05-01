@@ -1,0 +1,100 @@
+/* ── IOCL Brand Colors ── */
+:root {
+  --iocl-red:    #c8102e;
+  --iocl-dark:   #8b0000;
+  --iocl-blue:   #003087;
+  --iocl-gold:   #f5a623;
+  --iocl-light:  #fff8f0;
+  --sidebar-bg:  #1a1a2e;
+}
+
+/* ── Navbar ── */
+.iocl-navbar {
+  background: linear-gradient(135deg, var(--iocl-red) 0%, var(--iocl-dark) 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+.iocl-logo-circle {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--iocl-red);
+  font-weight: 900;
+  font-size: 0.85rem;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--iocl-gold);
+}
+.iocl-footer {
+  background: var(--iocl-dark);
+  color: #ccc;
+  font-size: 0.78rem;
+}
+
+/* ── KPI Cards ── */
+.kpi-card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  transition: transform .15s;
+}
+.kpi-card:hover { transform: translateY(-3px); }
+.kpi-icon {
+  width: 52px; height: 52px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+}
+
+/* ── Status Badges ── */
+.badge-active    { background: #d4edda; color: #155724; }
+.badge-inactive  { background: #f8d7da; color: #721c24; }
+.badge-suspended { background: #fff3cd; color: #856404; }
+.badge-pending   { background: #fff3cd; color: #856404; }
+.badge-approved  { background: #cce5ff; color: #004085; }
+.badge-delivered { background: #d4edda; color: #155724; }
+.badge-dispatched{ background: #d1ecf1; color: #0c5460; }
+.badge-cancelled { background: #f8d7da; color: #721c24; }
+
+/* ── Section Headers ── */
+.section-header {
+  border-left: 4px solid var(--iocl-red);
+  padding-left: 12px;
+  margin-bottom: 1rem;
+  color: #222;
+}
+
+/* ── Table ── */
+.iocl-table thead {
+  background: linear-gradient(90deg, var(--iocl-red), var(--iocl-dark));
+  color: #fff;
+}
+.iocl-table tbody tr:hover { background: var(--iocl-light); }
+
+/* ── Sidebar layout ── */
+.page-wrapper { display: flex; min-height: calc(100vh - 60px); }
+.content-area { flex: 1; padding: 1.5rem; }
+
+/* ── Login page ── */
+.login-bg {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--iocl-red) 0%, var(--iocl-dark) 50%, #000 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.login-card {
+  width: 420px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4);
+}
+
+/* ── Chart containers ── */
+.chart-container { position: relative; height: 260px; }
+
+/* ── Progress bars for inventory ── */
+.stock-bar .progress { height: 10px; border-radius: 6px; }
+.stock-low  .progress-bar { background: var(--iocl-red) !important; }
+.stock-mid  .progress-bar { background: var(--iocl-gold) !important; }
+.stock-high .progress-bar { background: #28a745 !important; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .kpi-card .fs-2 { font-size: 1.4rem !important; }
+}
