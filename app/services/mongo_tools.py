@@ -2,8 +2,8 @@
 MongoDB MCP-equivalent tool implementations.
 
 These functions mirror what the official @mongodb-js/mongodb-mcp-server
-exposes as MCP tools — implemented directly in Python so the Claude agent
-can call them via Anthropic tool_use without requiring a Node.js subprocess.
+exposes as MCP tools — implemented directly in Python so the AI agent
+can call them via tool_use without requiring a Node.js subprocess.
 
 Each function accepts JSON-serialisable arguments and returns
 JSON-serialisable results, exactly as an MCP tool would.
@@ -161,7 +161,7 @@ TOOL_REGISTRY = {
     "count_documents":   count_documents,
 }
 
-# ── Tool definitions for Claude API (tool_use format) ────────────────
+# ── Tool definitions for AI Agent (tool_use format) ─────────────────
 TOOL_DEFINITIONS = [
     {
         "name": "list_collections",

@@ -9,3 +9,10 @@ venv/
 dist/
 build/
 .pytest_cache/
+
+# Claude / Anthropic related files
+CLAUDE.md
+.claude/
+claude.json
+.anthropic/
+anthropic_cache/
