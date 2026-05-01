@@ -157,18 +157,31 @@
       </div>
 
       <!-- Live Data Results -->
-      <div class="card shadow-sm">
-        <div class="card-header bg-white fw-semibold small d-flex justify-content-between align-items-center">
-          <span><i class="bi bi-table me-1 text-danger"></i>Live Results from MongoDB</span>
-          <span class="badge bg-secondary" id="resultCount"></span>
+      <div class="card shadow-sm" style="border-top:3px solid #28a745;">
+        <div class="card-header bg-white fw-semibold small d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span>
+            <i class="bi bi-database-fill-check text-success me-1"></i>
+            Live Results from MongoDB
+            <span class="badge bg-success ms-1" id="resultCount"></span>
+          </span>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="copyResults()" title="Copy as CSV">
+              <i class="bi bi-clipboard me-1"></i>Copy CSV
+            </button>
+            <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+              <i class="bi bi-activity me-1"></i>Live Data
+            </span>
+          </div>
         </div>
         <div class="card-body p-0">
-          <div class="table-responsive" style="max-height:350px;overflow-y:auto;">
+          <div class="table-responsive" style="max-height:380px;overflow-y:auto;">
             <table class="table iocl-table table-hover table-sm mb-0" id="resultTable">
               <thead id="resultThead"></thead>
               <tbody id="resultTbody"></tbody>
             </table>
           </div>
+          <!-- Summary Stats Bar -->
+          <div id="resultStatsBar" class="d-none px-3 py-2 border-top bg-light small text-muted d-flex flex-wrap gap-3"></div>
           <div id="updateConfirmation" class="d-none p-3 text-center"></div>
         </div>
       </div>
@@ -257,29 +270,111 @@ function renderResult(data) {
   // Build table
   document.getElementById('resultTable').classList.remove('d-none');
   document.getElementById('updateConfirmation').classList.add('d-none');
+  document.getElementById('resultStatsBar').classList.add('d-none');
 
-  // Use agent-provided columns if available, else derive from first result
-  // Never filter _id — Python layer already renames it to group_by
   const cols = data.columns && data.columns.length
     ? data.columns
     : (results.length ? Object.keys(results[0]) : []);
 
-  // Format column header — convert snake_case to Title Case
   const colLabel = c => c.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+  // Detect column type from name for smart rendering
+  const isCurrency = c => /balance|amount|limit|revenue|sales|outstanding|total_out/i.test(c);
+  const isPct      = c => /pct|percent|utilis|compliance|score|util/i.test(c);
+  const isRating   = c => /rating/i.test(c);
+  const isCount    = c => /count|total_dealer|dealers|num/i.test(c);
+
+  function renderCell(col, val) {
+    if (val === null || val === undefined) return `<td class="small text-muted">—</td>`;
+
+    if (typeof val === 'object') {
+      return `<td class="small text-muted"><code>${JSON.stringify(val)}</code></td>`;
+    }
+
+    if (typeof val === 'number') {
+      if (isCurrency(col)) {
+        const lakhs = val / 100000;
+        const display = lakhs >= 1
+          ? '₹' + lakhs.toFixed(1) + 'L'
+          : '₹' + val.toLocaleString('en-IN', {maximumFractionDigits: 0});
+        const cls = val > 4000000 ? 'text-danger fw-semibold'
+                  : val > 2000000 ? 'text-warning fw-semibold' : 'text-success';
+        return `<td class="small ${cls}">${display}</td>`;
+      }
+      if (isPct(col)) {
+        const pct = parseFloat(val.toFixed(1));
+        const cls = pct < 50 ? 'text-danger' : pct < 75 ? 'text-warning' : 'text-success';
+        const bar = `<div class="progress mt-1" style="height:4px;">
+          <div class="progress-bar ${pct<50?'bg-danger':pct<75?'bg-warning':'bg-success'}"
+               style="width:${Math.min(pct,100)}%"></div></div>`;
+        return `<td class="small ${cls}">${pct}%${bar}</td>`;
+      }
+      if (isRating(col)) {
+        const stars = Math.round(val);
+        const filled = '★'.repeat(stars);
+        const empty  = '☆'.repeat(5 - stars);
+        return `<td class="small"><span class="text-warning">${filled}</span><span class="text-muted">${empty}</span> <small>${val.toFixed(1)}</small></td>`;
+      }
+      if (isCount(col)) {
+        return `<td class="small fw-semibold text-primary">${val.toLocaleString('en-IN')}</td>`;
+      }
+      return `<td class="small">${val.toLocaleString('en-IN', {maximumFractionDigits: 2})}</td>`;
+    }
+
+    // String values — highlight group_by column
+    if (col === 'group_by' || col === 'state' || col === 'dealer_code') {
+      return `<td class="small fw-semibold">${val}</td>`;
+    }
+    return `<td class="small">${val}</td>`;
+  }
 
   document.getElementById('resultThead').innerHTML =
     '<tr>' + cols.map(c => `<th class="text-nowrap">${colLabel(c)}</th>`).join('') + '</tr>';
 
-  document.getElementById('resultTbody').innerHTML = results.slice(0, 30).map(row => {
-    const cells = cols.map(c => {
-      let v = row[c];
-      if (v === null || v === undefined) v = '—';
-      else if (typeof v === 'number') v = v.toLocaleString('en-IN', {maximumFractionDigits: 2});
-      else if (typeof v === 'object') v = JSON.stringify(v);
-      return `<td class="small">${v}</td>`;
-    }).join('');
-    return `<tr>${cells}</tr>`;
-  }).join('') || '<tr><td colspan="99" class="text-muted text-center">No data returned.</td></tr>';
+  document.getElementById('resultTbody').innerHTML =
+    results.slice(0, 30).map(row =>
+      `<tr>${cols.map(c => renderCell(c, row[c])).join('')}</tr>`
+    ).join('') ||
+    `<tr><td colspan="99" class="text-muted text-center py-3">No data returned.</td></tr>`;
+
+  // Summary stats bar — numeric column totals / averages
+  const numCols = cols.filter(c => results.length && typeof results[0][c] === 'number');
+  if (numCols.length && results.length > 1) {
+    const statsBar = document.getElementById('resultStatsBar');
+    statsBar.classList.remove('d-none');
+    statsBar.innerHTML = numCols.slice(0, 4).map(c => {
+      const vals = results.map(r => r[c]).filter(v => typeof v === 'number');
+      if (isCurrency(c)) {
+        const total = vals.reduce((a, b) => a + b, 0);
+        return `<span><b>${colLabel(c)}:</b> ₹${(total/10000000).toFixed(2)} Cr total</span>`;
+      }
+      if (isPct(c) || isRating(c)) {
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        return `<span><b>Avg ${colLabel(c)}:</b> ${avg.toFixed(1)}${isPct(c)?'%':''}</span>`;
+      }
+      if (isCount(c)) {
+        const total = vals.reduce((a, b) => a + b, 0);
+        return `<span><b>Total ${colLabel(c)}:</b> ${total.toLocaleString('en-IN')}</span>`;
+      }
+      return '';
+    }).filter(Boolean).join(' &nbsp;|&nbsp; ');
+  }
+}
+
+// Copy results as CSV
+function copyResults() {
+  const thead = document.getElementById('resultThead');
+  const tbody = document.getElementById('resultTbody');
+  if (!thead || !tbody) return;
+  const headers = [...thead.querySelectorAll('th')].map(th => th.textContent.trim());
+  const rows    = [...tbody.querySelectorAll('tr')].map(tr =>
+    [...tr.querySelectorAll('td')].map(td => td.textContent.trim()).join(',')
+  );
+  const csv = [headers.join(','), ...rows].join('\n');
+  navigator.clipboard.writeText(csv).then(() => {
+    const btn = document.querySelector('[onclick="copyResults()"]');
+    if (btn) { btn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!'; setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy CSV'; }, 2000); }
+  });
 }
 
 // Main generate handler
