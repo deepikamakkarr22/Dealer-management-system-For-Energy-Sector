@@ -85,9 +85,38 @@ DEMO_SCENARIOS = [
 ]
 
 
+def _extract_json(text: str) -> dict:
+    """
+    Robustly extract a JSON object from GPT-4o output.
+    Handles plain JSON, markdown ```json blocks, and leading/trailing text.
+    """
+    import re
+    # Strip markdown code fences first
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if fenced:
+        return json.loads(fenced.group(1))
+    # Fall back to first { ... last }
+    start = text.find("{")
+    end   = text.rfind("}") + 1
+    if start >= 0 and end > start:
+        return json.loads(text[start:end])
+    raise ValueError("No JSON object found in response")
+
+
+def _normalise_results(results) -> list:
+    """Ensure results is always a list of dicts for the frontend."""
+    if isinstance(results, list):
+        return results
+    if isinstance(results, dict):
+        return [results]
+    if isinstance(results, (int, float)):
+        return [{"value": results}]
+    return []
+
+
 def run_vibe_agent(prompt: str) -> dict:
     """
-    Run Groq + Llama agent with MongoDB tool-use loop.
+    Run GPT-4o agent with MongoDB tool-use loop.
     Returns structured dict with results, query, and comparison.
     """
     client = _get_client()
@@ -113,39 +142,42 @@ def run_vibe_agent(prompt: str) -> dict:
         choice  = response.choices[0]
         message = choice.message
 
-        # Append assistant turn to history
-        messages.append({
-            "role":       "assistant",
-            "content":    message.content or "",
-            "tool_calls": [
+        # Build assistant message — only include tool_calls key when present
+        # OpenAI rejects tool_calls: null in assistant messages
+        assistant_msg = {
+            "role":    "assistant",
+            "content": message.content or "",
+        }
+        if message.tool_calls:
+            assistant_msg["tool_calls"] = [
                 {
-                    "id":       tc.id,
-                    "type":     "function",
+                    "id":   tc.id,
+                    "type": "function",
                     "function": {
                         "name":      tc.function.name,
                         "arguments": tc.function.arguments,
                     },
                 }
-                for tc in (message.tool_calls or [])
-            ] or None,
-        })
+                for tc in message.tool_calls
+            ]
+        messages.append(assistant_msg)
 
         # ── Agent done — parse final JSON response ────────────────────
         if choice.finish_reason == "stop":
             text = message.content or ""
             try:
-                start  = text.find("{")
-                end    = text.rfind("}") + 1
-                result = json.loads(text[start:end])
+                result = _extract_json(text)
+                result["results"] = _normalise_results(result.get("results", []))
                 result["tool_calls_log"] = tool_calls_log
                 return result
             except Exception:
+                # GPT-4o gave a plain text answer — wrap it as a metric
                 return {
-                    "title":                "Response",
+                    "title":                "Result",
                     "summary":              text,
                     "mongodb_query":        {},
                     "results":              [],
-                    "result_type":          "table",
+                    "result_type":          "metric",
                     "columns":              [],
                     "mongodb_advantage":    "",
                     "oracle_apex_equivalent": "",

@@ -267,6 +267,18 @@ function renderResult(data) {
     return;
   }
 
+  // Metric / plain-text answer (e.g. count queries)
+  if (data.result_type === 'metric' || (!results.length && data.summary)) {
+    document.getElementById('resultTable').classList.add('d-none');
+    const uc = document.getElementById('updateConfirmation');
+    uc.classList.remove('d-none');
+    uc.innerHTML = `
+      <i class="bi bi-bar-chart-fill text-primary fs-2 d-block mb-2"></i>
+      <div class="fw-bold fs-5 mb-2">${data.title || 'Answer'}</div>
+      <div class="alert alert-info text-start mx-3">${data.summary}</div>`;
+    return;
+  }
+
   // Build table
   document.getElementById('resultTable').classList.remove('d-none');
   document.getElementById('updateConfirmation').classList.add('d-none');
