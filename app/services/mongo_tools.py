@@ -243,3 +243,19 @@ TOOL_DEFINITIONS = [
         },
     },
 ]
+
+# ── Tool definitions for Groq/OpenAI function-calling format ─────────
+def _to_groq(tool: dict) -> dict:
+    """Convert Anthropic tool definition to Groq/OpenAI function format."""
+    schema = tool["input_schema"].copy()
+    schema.setdefault("properties", {})
+    return {
+        "type": "function",
+        "function": {
+            "name":        tool["name"],
+            "description": tool["description"],
+            "parameters":  schema,
+        },
+    }
+
+TOOL_DEFINITIONS_GROQ = [_to_groq(t) for t in TOOL_DEFINITIONS]
